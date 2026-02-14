@@ -37,12 +37,12 @@ Baseado no vídeo do **[VegaData](https://www.youtube.com/@VegaData)**: [Como in
 
 | Recurso | Detalhe |
 |---------|---------|
-| 🖥️ **SSH remoto** | Acesso via `172.16.42.1` pela USB |
-| 📶 **Wi-Fi** | Conecta em redes para acesso à internet |
-| 📱 **4G** | Usa o chip do modem para dados móveis |
-| 💾 **~3.2GB** | Armazenamento após reparticionamento |
-| 📦 **Alpine Linux** | `apk add` qualquer pacote |
-| 🔄 **Reversível** | Restaura o Android original a qualquer momento |
+| **SSH remoto** | Acesso via `172.16.42.1` pela USB |
+| **Wi-Fi** | Conecta em redes para acesso à internet |
+| **4G** | Usa o chip do modem para dados móveis |
+| **~3.2GB** | Armazenamento após reparticionamento |
+| **Alpine Linux** | `apk add` qualquer pacote |
+| **Reversível** | Restaura o Android original a qualquer momento |
 
 ---
 
@@ -61,7 +61,7 @@ Para descobrir seu modelo, abra o modem e leia o texto na placa.
 
 ---
 
-## Flash Automatizado ⚡
+## Flash Automatizado
 
 > **Modo mais fácil!** O script faz tudo sozinho: backup, compilação, download e flash.
 
@@ -289,10 +289,10 @@ ssh usuario@172.16.42.1
 
 ```
 modem4g-postmarketOS/
-├── flash.sh            # 🔧 Script de flash automatizado
-├── setup.sh            # ⚙️  Script de configuração pós-instalação
-├── GUIA_COMPLETO.md    # 📖 Guia detalhado passo a passo
-├── README.md           # 📋 Este arquivo
+├── flash.sh            # Script de flash automatizado
+├── setup.sh            # Script de configuração pós-instalação
+├── GUIA_COMPLETO.md    # Guia detalhado passo a passo
+├── README.md           # Este arquivo
 └── LICENSE             # MIT
 ```
 
@@ -318,13 +318,13 @@ sudo apk add htop python3 nodejs nano curl
 
 ### Ideias de uso
 
-- 🛡️ **Pi-hole** — bloqueador de anúncios portátil
-- 🔒 **WireGuard** — VPN portátil
-- 🤖 **Bot Telegram/Discord** — roda 24/7
-- 🌐 **Servidor web** — nginx
-- 📡 **Monitor de rede** — sniffer portátil
-- 📶 **Hotspot 4G→WiFi** — compartilhar dados móveis
-- 🔗 **Tethering USB** — usar como modem Linux no PC
+- **Pi-hole** — bloqueador de anúncios portátil
+- **WireGuard** — VPN portátil
+- **Bot Telegram/Discord** — roda 24/7
+- **Servidor web** — nginx
+- **Monitor de rede** — sniffer portátil
+- **Hotspot 4G->WiFi** — compartilhar dados móveis
+- **Tethering USB** — usar como modem Linux no PC
 
 ---
 

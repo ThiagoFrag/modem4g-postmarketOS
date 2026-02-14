@@ -60,6 +60,10 @@ QDL_PID="9008"
 FASTBOOT_VID="18d1"
 FASTBOOT_PID="d00d"
 
+# Credenciais do postmarketOS (definidas interativamente)
+PMOS_USER=""
+PMOS_PASS=""
+
 # ─── Funções de UI ──────────────────────────────────────────────────────────
 
 banner() {
@@ -346,11 +350,12 @@ identify_modem() {
 select_modem_model() {
     echo ""
     echo -e "  ${BOLD}Selecione o modelo do seu modem:${NC}"
+    echo -e "  ${DIM}(abra o modem e leia o texto na placa)${NC}"
     echo ""
     echo -e "    ${CYAN}1${NC}) UFI-001C / UFI-001B"
     echo -e "    ${CYAN}2${NC}) UFI-003 / MF601 / Genérico"
     echo -e "    ${CYAN}3${NC}) UZ801 V3.0"
-    echo -e "    ${CYAN}4${NC}) JZ0145 V33"
+    echo -e "    ${CYAN}4${NC}) JZ0145 V33 / JZ01-45-EU"
     echo -e "    ${CYAN}5${NC}) Não sei (usar genérico)"
     echo ""
     echo -en "  ${YELLOW}?${NC}  Escolha [1-5]: "
@@ -363,6 +368,28 @@ select_modem_model() {
         4) echo "jz0145" ;;
         *) echo "generico" ;;
     esac
+}
+
+ask_credentials() {
+    log_step "Credenciais do postmarketOS"
+    echo -e "  ${DIM}(definidas durante o pmbootstrap init)${NC}"
+    echo ""
+
+    if [[ -z "$PMOS_USER" ]]; then
+        echo -en "  ${YELLOW}?${NC}  Usuário SSH: "
+        read -r PMOS_USER
+        PMOS_USER=${PMOS_USER:-user}
+    fi
+
+    if [[ -z "$PMOS_PASS" ]]; then
+        echo -en "  ${YELLOW}?${NC}  Senha SSH: "
+        read -rs PMOS_PASS
+        echo ""
+        PMOS_PASS=${PMOS_PASS:-147258369}
+    fi
+
+    log_ok "Usuário: ${BOLD}$PMOS_USER${NC}"
+    log_ok "Senha: ${BOLD}$(echo "$PMOS_PASS" | sed 's/./*/g')${NC}"
 }
 
 # ─── Backup ─────────────────────────────────────────────────────────────────
@@ -726,10 +753,29 @@ post_flash_check() {
 
         # Tentar SSH
         echo ""
-        log_info "Para acessar o modem:"
-        echo -e "    ${BOLD}ssh <usuario>@172.16.42.1${NC}"
+        if [[ -n "$PMOS_USER" && -n "$PMOS_PASS" ]] && command -v sshpass &>/dev/null; then
+            log_info "Testando SSH..."
+            local ssh_output
+            ssh_output=$(sshpass -p "$PMOS_PASS" ssh -o StrictHostKeyChecking=no \
+                -o PreferredAuthentications=password \
+                -o PubkeyAuthentication=no \
+                -o ConnectTimeout=10 \
+                "${PMOS_USER}@${modem_ip}" \
+                "hostname && uname -r && cat /etc/os-release | grep PRETTY" 2>/dev/null)
+            if [[ -n "$ssh_output" ]]; then
+                log_ok "SSH funcionando!"
+                echo -e "  ${DIM}$ssh_output${NC}" | head -3
+            else
+                log_warn "SSH falhou (verifique usuário/senha)"
+            fi
+        fi
+
         echo ""
-        log_info "Senha: a que você definiu no pmbootstrap"
+        log_ok "${GREEN}${BOLD}Flash concluído com sucesso!${NC}"
+        echo ""
+        log_info "Acesse o modem:"
+        echo -e "    ${BOLD}ssh ${PMOS_USER:-usuario}@172.16.42.1${NC}"
+        [[ -n "$PMOS_PASS" ]] && log_info "Senha: ${BOLD}$PMOS_PASS${NC}"
         echo ""
 
         return 0
@@ -873,49 +919,60 @@ full_flash() {
     log_step "Flash Completo do postmarketOS"
     echo ""
 
-    # 1. Dependências
-    install_deps
-
-    # 2. Preparar diretórios
-    mkdir -p "$WORK_DIR" "$BACKUP_DIR" "$FIRMWARE_DIR" "$BUILD_DIR"
-
-    # 3. Selecionar modelo
+    # 1. Selecionar modelo
     local model target
     model=$(select_modem_model)
     target="${MODEM_TARGETS[$model]}"
     log_ok "Modelo: ${BOLD}$model${NC} (target: $target)"
 
-    # 4. Verificar modo EDL
+    # 2. Perguntar credenciais
+    ask_credentials
+
+    # 3. Dependências
+    install_deps
+
+    # 4. Preparar diretórios
+    mkdir -p "$WORK_DIR" "$BACKUP_DIR" "$FIRMWARE_DIR" "$BUILD_DIR"
+
+    # 5. Verificar modo EDL
     ensure_edl || return 1
 
-    # 5. Backup
+    # 6. Backup
     if confirm "Fazer backup do firmware original? (RECOMENDADO)"; then
         do_backup || log_warn "Backup falhou, continuando..."
     fi
 
-    # 6. Compilar firmware
+    # 7. Compilar firmware
     log_step "Compilando firmware..."
     download_db410c_firmware
     compile_qhypstub
     compile_lk1st "$target"
 
-    # 7. Rootfs
+    # 8. Rootfs
     generate_rootfs || {
         log_error "Rootfs não disponível. Gere a imagem e rode novamente."
         return 1
     }
 
-    # 8. Flash
+    # 9. Flash
     ensure_edl || return 1
     flash_edl
 
-    # 9. Verificar
+    # 10. Verificar
     post_flash_check
 }
 
 quick_flash() {
     log_step "Flash Rápido"
     echo ""
+
+    # Perguntar modelo e credenciais
+    local model target
+    model=$(select_modem_model)
+    target="${MODEM_TARGETS[$model]}"
+    log_ok "Modelo: ${BOLD}$model${NC} (target: $target)"
+
+    ask_credentials
 
     mkdir -p "$FIRMWARE_DIR"
 
@@ -996,6 +1053,7 @@ main() {
         --auto)
             banner
             mkdir -p "$WORK_DIR" "$BACKUP_DIR" "$FIRMWARE_DIR" "$BUILD_DIR"
+            # quick_flash já pergunta modelo e credenciais
             quick_flash
             ;;
         --backup|--backup-only)
